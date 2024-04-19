@@ -1,5 +1,4 @@
 import type {NextApiRequest, NextApiResponse} from "next";
-import {Unbody} from "@unbody-io/ts-client";
 import {EProviders} from "@/configs";
 import {unbody} from "@/unbody";
 

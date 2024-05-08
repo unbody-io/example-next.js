@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@tailwindcss/typography": "^0.5.12",
-    "@unbody-io/ts-client": "^0.0.9",
+    "@unbody-io/ts-client": "0.0.14",
     "next": "14.2.1",
     "react": "^18",
     "react-dom": "^18"

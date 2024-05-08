@@ -52,6 +52,46 @@ export default async function handler(
         .exec()
       return res.status(200).json(payload)
     }
+    case EProviders.GithubComment: {
+      const {
+        data: { payload },
+      } = await u.get.githubComment
+        .select(
+          'author.login',
+          'author.avatarUrl',
+          'type',
+          'html',
+          'thread.GithubThread.title',
+          'thread.GithubThread.type',
+          'thread.GithubThread.url',
+          'thread.GithubThread.number'
+        )
+        .search.about(query, { certainty: 0.5 })
+        .exec()
+
+      return res.status(200).json(payload)
+    }
+    case EProviders.GithubThread: {
+      const {
+        data: { payload },
+      } = await u.get.githubThread
+        .where(({ ContainsAny }) => ({
+          type: ContainsAny('issue', 'pull_request'),
+        }))
+        .select(
+          'title',
+          'text',
+          'type',
+          'url',
+          'number',
+          'author.login',
+          'author.avatarUrl'
+        )
+        .search.about(query, { certainty: 0.5 })
+        .exec()
+
+      return res.status(200).json(payload)
+    }
     default: {
       return res.status(400)
     }

@@ -85,6 +85,49 @@ export default async function handler(
 
       return res.status(200).json(generate.result)
     }
+
+    case EProviders.GithubComment: {
+      const {
+        data: { generate, payload },
+      } = await unbody.get.githubComment
+        .select('text')
+        .search.about(context, { certainty: sensitivity })
+        .limit(10)
+        .generate.fromMany(enhancedPrompt, ['text'])
+        .exec()
+
+      if (payload.length === 0) {
+        return res
+          .status(200)
+          .json(
+            `It seems like I couldn't find any relevant information to generate a response. Please try again with a different context.`
+          )
+      }
+
+      return res.status(200).json(generate.result)
+    }
+
+    case EProviders.GithubThread: {
+      const {
+        data: { generate, payload },
+      } = await unbody.get.githubThread
+        .select('text')
+        .search.about(context, { certainty: sensitivity })
+        .limit(10)
+        .generate.fromMany(enhancedPrompt, ['text'])
+        .exec()
+
+      if (payload.length === 0) {
+        return res
+          .status(200)
+          .json(
+            `It seems like I couldn't find any relevant information to generate a response. Please try again with a different context.`
+          )
+      }
+
+      return res.status(200).json(generate.result)
+    }
+
     default: {
       return res.status(400).send('Invalid provider')
     }

@@ -61,7 +61,7 @@ const Generative = () => {
   }
 
   return (
-    <section className="h-screen">
+    <section className="min-h-screen pb-8">
       <div className="mx-auto w-1/2 pt-8">
         <SourceSelector provider={provider} onChange={setProvider} />
         <form className="w-full flex flex-col gap-7 pt-8" onSubmit={onSubmit}>

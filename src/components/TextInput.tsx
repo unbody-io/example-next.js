@@ -1,12 +1,11 @@
-import React from 'react'
-
 type Props = {
   label: string
+  value?: string
   placeholder: string
   onChange: (value: string) => void
 }
 
-export const TextInput = ({ label, placeholder, onChange }: Props) => (
+export const TextInput = ({ value, label, placeholder, onChange }: Props) => (
   <div className={'text-balance'}>
     <label className="text-gray-500 font-semibold text-sm p-2 block">
       {label}
@@ -18,6 +17,7 @@ export const TextInput = ({ label, placeholder, onChange }: Props) => (
         className="px-6 py-2 w-full rounded-md flex-1 outline-none bg-white"
         autoComplete="off"
         onChange={(e) => onChange(e.target.value)}
+        {...(typeof value !== 'undefined' ? { value } : {})}
       />
     </div>
   </div>

@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "prepare": "husky install",
+    "prettier:staged": "pretty-quick --staged"
   },
   "dependencies": {
     "@tailwindcss/typography": "^0.5.12",
@@ -19,7 +21,13 @@
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.3",
+    "husky": "^9.0.11",
     "postcss": "^8",
+    "prettier": "^3.2.5",
+    "prettier-plugin-organize-imports": "^3.2.4",
+    "pretty-quick": "^4.0.0",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
   }

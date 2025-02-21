@@ -343,10 +343,10 @@ export default async function handler(
 
   return res.status(200).json({
     query: parsed,
-    answer: await marked.parse(generate.result),
+    answer: await marked.parse(generate.result || ''),
     recipes: payload.map((recipe) => ({
       ...recipe,
-      text: marked.parse(recipe.text as string, { async: false }),
+      text: marked.parse((recipe.text || '') as string, { async: false }),
     })) as any,
   })
 }

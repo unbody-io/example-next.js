@@ -249,9 +249,6 @@ export default async function handler(
 
   const allRecipes = [...results, ...history.flatMap((item) => item.recipes)]
 
-  console.log(JSON.stringify(allRecipes))
-  console.log(JSON.stringify(answer.relevantRecipes))
-
   return res.status(200).json({
     answer: marked.parse(answer.answer),
     query,

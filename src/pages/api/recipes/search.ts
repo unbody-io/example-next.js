@@ -2,12 +2,20 @@ import * as marked from 'marked'
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { NumberField, StringArrayField, StringField, Unbody } from 'unbody'
 import { z } from 'zod'
-import type { Data as ParsedQuery } from './parse'
 
 const u = new Unbody({
   apiKey: process.env.UNBODY_API_KEY!,
   projectId: process.env.UNBODY_PROJECT_ID!,
 })
+
+export type ParsedQuery = {
+  query: string
+  concepts: string[]
+  includeIngredients?: string[]
+  excludeIngredients?: string[]
+  includeCuisineTypes?: string[]
+  totalTimeMinutesMax?: number | undefined
+}
 
 export type RequestParams = {
   query: string
@@ -49,7 +57,7 @@ type RecipeCollection = {
   servings: NumberField
 }
 
-const parseQuery = async (query: string, history?: any[]) => {
+const parseQuery = async (query: string) => {
   const {
     data: { payload },
   } = await u.generate.json(
@@ -59,16 +67,6 @@ const parseQuery = async (query: string, history?: any[]) => {
         content:
           "Analyze the user's query and history of queries to determine the user's intent and preferences.",
       },
-      ...(history || []).flatMap((item) => [
-        {
-          role: 'user' as 'user',
-          content: item.query,
-        },
-        {
-          role: 'assistant' as 'assistant',
-          content: JSON.stringify({ ...item, query: undefined }),
-        },
-      ]),
       {
         role: 'user',
         content: query,
@@ -76,16 +74,6 @@ const parseQuery = async (query: string, history?: any[]) => {
     ],
     {
       schema: z.object({
-        queryTitle: z
-          .string()
-          .describe(
-            "A descriptive and engaging title for the user's query e.g., Quick and Easy Dinner Recipes."
-          ),
-        intent: z
-          .enum(['search', 'question'])
-          .describe(
-            "The user's intent: 'search' if they want to search for recipes or 'question' if they have a question about the returned recipes."
-          ),
         concepts: z
           .array(z.string())
           .describe('Search terms that the user is interested in.'),
@@ -101,81 +89,16 @@ const parseQuery = async (query: string, history?: any[]) => {
           .describe(
             'Ingredients that the user wants to exclude from the search results.'
           ),
-        includeMealTypes: z
-          .array(z.string())
-          .nullable()
-          .describe(
-            "Meal types that the user wants to include in the search results. e.g., 'breakfast', 'lunch', 'dinner'."
-          ),
-        excludeMealTypes: z
-          .array(z.string())
-          .nullable()
-          .describe(
-            "Meal types that the user wants to exclude from the search results. e.g., 'breakfast', 'lunch', 'dinner'."
-          ),
-        includeCourseTypes: z
-          .array(z.string())
-          .nullable()
-          .describe(
-            "Course types that the user wants to include in the search results. e.g., 'appetizer', 'main', 'dessert'."
-          ),
-        excludeCourseTypes: z
-          .array(z.string())
-          .nullable()
-          .describe(
-            "Course types that the user wants to exclude from the search results. e.g., 'appetizer', 'main', 'dessert'."
-          ),
         includeCuisineTypes: z
           .array(z.string())
           .nullable()
           .describe(
             "Cuisine types that the user wants to include in the search results. e.g., 'italian', 'mexican', 'chinese'."
           ),
-        excludeCuisineTypes: z
-          .array(z.string())
-          .nullable()
-          .describe(
-            "Cuisine types that the user wants to exclude from the search results. e.g., 'italian', 'mexican', 'chinese'."
-          ),
-        includeSeasons: z
-          .array(z.string())
-          .nullable()
-          .describe(
-            "Seasons in which the user typically cooks. e.g., 'summer', 'winter'."
-          ),
-        excludeSeasons: z
-          .array(z.string())
-          .nullable()
-          .describe(
-            "Seasons in which the user typically does not cook. e.g., 'summer', 'winter'."
-          ),
-        prepTimeMinutesMax: z
-          .number()
-          .nullable()
-          .describe('Maximum preparation time in minutes.'),
-        cookTimeMinutesMax: z
-          .number()
-          .nullable()
-          .describe('Maximum cooking time in minutes.'),
         totalTimeMinutesMax: z
           .number()
           .nullable()
           .describe('Maximum total time in minutes.'),
-        servingsMin: z
-          .number()
-          .nullable()
-          .describe('Minimum number of servings.'),
-        servingsMax: z
-          .number()
-          .nullable()
-          .describe('Maximum number of servings.'),
-        excludeAllergens: z
-          .array(z.string())
-          .nullable()
-          .default([])
-          .describe(
-            "Allergens that the user wants to exclude from the search results. e.g., 'peanuts', 'dairy'."
-          ),
       }),
     }
   )
@@ -219,7 +142,7 @@ export default async function handler(
         : parsed.query
     )
     .autocut(3)
-    .where(({ And, ContainsAll, NotEqual, LessThanEqual, GreaterThanEqual }) =>
+    .where(({ And, ContainsAll, NotEqual, LessThanEqual }) =>
       And(
         ...(parsed.includeIngredients
           ? [
@@ -228,35 +151,10 @@ export default async function handler(
               },
             ]
           : []),
+
         ...(parsed.excludeIngredients
           ? parsed.excludeIngredients.map((ing) => ({
               ingredients: NotEqual(ing),
-            }))
-          : []),
-
-        ...(parsed.includeMealTypes
-          ? [
-              {
-                mealTypes: ContainsAll(parsed.includeMealTypes),
-              },
-            ]
-          : []),
-        ...(parsed.excludeMealTypes
-          ? parsed.excludeMealTypes.map((ing) => ({
-              mealTypes: NotEqual(ing),
-            }))
-          : []),
-
-        ...(parsed.includeCourseTypes
-          ? [
-              {
-                courseTypes: ContainsAll(parsed.includeCourseTypes),
-              },
-            ]
-          : []),
-        ...(parsed.excludeCourseTypes
-          ? parsed.excludeCourseTypes.map((ing) => ({
-              courseTypes: NotEqual(ing),
             }))
           : []),
 
@@ -267,60 +165,13 @@ export default async function handler(
               },
             ]
           : []),
-        ...(parsed.excludeCuisineTypes
-          ? parsed.excludeCuisineTypes.map((ing) => ({
-              cuisineTypes: NotEqual(ing),
-            }))
-          : []),
 
-        ...(parsed.includeSeasons
+        ...(parsed.totalTimeMinutesMax && parsed.totalTimeMinutesMax > 0
           ? [
               {
-                seasons: ContainsAll(parsed.includeSeasons),
-              },
-            ]
-          : []),
-        ...(parsed.excludeSeasons
-          ? parsed.excludeSeasons.map((ing) => ({
-              seasons: NotEqual(ing),
-            }))
-          : []),
-
-        ...(parsed.excludeAllergens
-          ? parsed.excludeAllergens.map((ing) => ({
-              allergens: NotEqual(ing),
-            }))
-          : []),
-
-        ...(parsed.cookTimeMinutesMax && parsed.cookTimeMinutesMax > 0
-          ? [
-              {
-                cookTimeMinutes: LessThanEqual(
-                  parsed.cookTimeMinutesMax + 0.0001
+                totalTimeMinutes: LessThanEqual(
+                  parsed.totalTimeMinutesMax + 0.0001
                 ),
-              },
-            ]
-          : []),
-        ...(parsed.prepTimeMinutesMax && parsed.prepTimeMinutesMax > 0
-          ? [
-              {
-                prepTimeMinutes: LessThanEqual(
-                  parsed.prepTimeMinutesMax + 0.0001
-                ),
-              },
-            ]
-          : []),
-        ...(parsed.servingsMax && parsed.servingsMax > 0
-          ? [
-              {
-                servings: LessThanEqual(parsed.servingsMax + 0.0001),
-              },
-            ]
-          : []),
-        ...(parsed.servingsMin && parsed.servingsMin > 0
-          ? [
-              {
-                servings: GreaterThanEqual(parsed.servingsMin - 0.0001),
               },
             ]
           : [])

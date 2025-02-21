@@ -40,43 +40,62 @@ const useChat = () => {
 
     let parsed: ParsedQuery
 
-    const res = await fetch('/api/recipes/parse', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        query: prompt,
-        history: parsedQueries,
-      } as ParseQueryParams),
-    })
+    try {
+      const res = await fetch('/api/recipes/parse', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: prompt,
+          history: parsedQueries,
+        } as ParseQueryParams),
+      })
 
-    if (res.ok) {
-      const data = await res.json()
-      parsed = data
-      setParsedQueries((val) => [...val, data])
+      if (res.ok) {
+        const data = await res.json()
+        parsed = data
+        setParsedQueries((val) => [...val, data])
+      }
+    } catch (error) {
+      console.error(error)
+      setGenerating(false)
+      setMessages((value) => value.slice(0, value.length - 1))
+      return
     }
 
-    const chatRes = await fetch('/api/recipes/chat', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        query: parsed!,
-        history: chatResults,
-      } as ChatParams),
-    })
+    try {
+      const chatRes = await fetch('/api/recipes/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: parsed!,
+          history: chatResults,
+        } as ChatParams),
+      })
 
-    if (chatRes.ok) {
-      const data = (await chatRes.json()) as ChatResult
-      setChatResults((val) => [...val, data])
+      if (chatRes.ok) {
+        const data = (await chatRes.json()) as ChatResult
+        setChatResults((val) => [...val, data])
+        setMessages((value) => [
+          ...value,
+          {
+            message: data.answer,
+            role: 'assistant',
+            queryIndex: parsedQueries.length,
+          },
+        ])
+      }
+    } catch (error) {
+      console.error(error)
       setMessages((value) => [
         ...value,
         {
-          message: data.answer,
           role: 'assistant',
           queryIndex: parsedQueries.length,
+          message: 'Failed to generate response',
         },
       ])
     }
